@@ -1,9 +1,13 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, "..", "..", "gravity-claw.db");
+
+// Use Railway volume mount if available, otherwise project root
+const DATA_DIR = fs.existsSync("/app/data") ? "/app/data" : path.join(__dirname, "..", "..");
+const DB_PATH = path.join(DATA_DIR, "gravity-claw.db");
 
 let db: Database.Database;
 
