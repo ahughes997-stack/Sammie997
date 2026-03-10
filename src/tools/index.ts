@@ -2,6 +2,7 @@ import type { ChatCompletionTool } from "openai/resources/chat/completions.js";
 import { getCurrentTimeTool, type ToolDefinition } from "./get-current-time.js";
 import { rememberTool, executeRemember } from "./remember.js";
 import { recallTool, executeRecall } from "./recall.js";
+import { webSearchTool, executeWebSearch } from "./web-search.js";
 
 // ── Tool Registry ──────────────────────────────────────────────
 // Add new tools here. The agent loop uses this to resolve tool calls.
@@ -16,6 +17,11 @@ const allTools: ToolDefinition[] = [
     {
         spec: recallTool,
         execute: async (args) => executeRecall(args as { query: string }),
+    },
+    {
+        spec: webSearchTool,
+        execute: async (args) =>
+            executeWebSearch(args as { query: string; num_results?: number }),
     },
 ];
 
