@@ -6,6 +6,7 @@ export interface Config {
     groqApiKey: string | undefined;
     allowedUserIds: number[];
     dataDir: string;
+    serperApiKey: string | undefined;
 }
 
 function requireEnv(name: string): string {
@@ -45,5 +46,6 @@ export function loadConfig(): Config {
         groqApiKey: process.env.GROQ_API_KEY || undefined,
         allowedUserIds: parseUserIds(requireEnv("ALLOWED_USER_IDS")),
         dataDir: process.env.DATA_DIR || "./",
+        serperApiKey: process.env.SERPER_API_KEY,
     };
 }
