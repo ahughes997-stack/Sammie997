@@ -5,6 +5,7 @@ export interface Config {
     openrouterApiKey: string;
     groqApiKey: string | undefined;
     allowedUserIds: number[];
+    dataDir: string;
 }
 
 function requireEnv(name: string): string {
@@ -43,5 +44,6 @@ export function loadConfig(): Config {
         openrouterApiKey: requireEnv("OPENROUTER_API_KEY"),
         groqApiKey: process.env.GROQ_API_KEY || undefined,
         allowedUserIds: parseUserIds(requireEnv("ALLOWED_USER_IDS")),
+        dataDir: process.env.DATA_DIR || "./",
     };
 }

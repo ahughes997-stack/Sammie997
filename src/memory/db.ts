@@ -5,18 +5,29 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Use Railway volume mount if available, otherwise project root
-const DATA_DIR = fs.existsSync("/app/data") ? "/app/data" : path.join(__dirname, "..", "..");
-const DB_PATH = path.join(DATA_DIR, "gravity-claw.db");
-
 let db: Database.Database;
 
-export function getDb(): Database.Database {
+export function initializeDb(dataDir: string): void {
     if (!db) {
-        db = new Database(DB_PATH);
+        // Ensure the directory exists
+        if (!fs.existsSync(dataDir)) {
+            console.log(`  📂 Creating data directory: ${dataDir}`);
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        const dbPath = path.resolve(dataDir, "gravity-claw.db");
+        console.log(`  🗄️ Initializing database at: ${dbPath}`);
+
+        db = new Database(dbPath);
         db.pragma("journal_mode = WAL");
         db.pragma("foreign_keys = ON");
         initSchema(db);
+    }
+}
+
+export function getDb(): Database.Database {
+    if (!db) {
+        throw new Error("Database not initialized. Call initializeDb() first.");
     }
     return db;
 }

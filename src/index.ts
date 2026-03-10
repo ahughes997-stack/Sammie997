@@ -3,7 +3,7 @@ import { createLLMClient } from "./llm.js";
 import { createTranscriptionClient } from "./transcribe.js";
 import { createBot } from "./bot.js";
 import { MemorySystem } from "./memory/index.js";
-import { getDb, closeDb, getMemoryCount } from "./memory/db.js";
+import { initializeDb, closeDb, getMemoryCount } from "./memory/db.js";
 
 async function main() {
     console.log(`
@@ -31,7 +31,7 @@ async function main() {
     );
 
     // ── Initialize memory system ────────────────────────────────
-    getDb(); // ensures DB + schema are created
+    initializeDb(config.dataDir); // ensures DB + schema are created
     const memory = new MemorySystem(llm);
     const memCount = getMemoryCount();
     console.log(
