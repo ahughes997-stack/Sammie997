@@ -74,15 +74,19 @@ async function searchDuckDuckGo(
     query: string,
     maxResults: number
 ): Promise<SearchResult[]> {
-    // Use DuckDuckGo's HTML lite endpoint
-    const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+    // Use DuckDuckGo's standard HTML endpoint
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
     const response = await fetch(url, {
+        method: "POST",
         headers: {
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            Accept: "text/html",
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Content-Type": "application/x-www-form-urlencoded",
         },
+        body: `q=${encodeURIComponent(query)}`,
     });
 
     if (!response.ok) {
@@ -94,48 +98,56 @@ async function searchDuckDuckGo(
 }
 
 /**
- * Parse DuckDuckGo lite HTML results.
- * The lite page has a simple table structure:
- *   - Result links are in <a> tags with class "result-link"
- *   - Snippets follow in <td> elements with class "result-snippet"
+ * Parse DuckDuckGo HTML results.
+ * Structure uses:
+ *   - <a class="result__a" href="...">Title</a>
+ *   - <a class="result__snippet" ...>Snippet</a>
  */
 function parseResults(html: string, maxResults: number): SearchResult[] {
     const results: SearchResult[] = [];
 
-    // Extract result links: <a rel="nofollow" href="URL" class="result-link">TITLE</a>
-    const linkRegex =
-        /<a[^>]*class="result-link"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    // Match each result block: contains result__a (title+link) and result__snippet
+    const resultBlockRegex =
+        /<div[^>]*class="[^"]*result [^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?=<div[^>]*class="[^"]*result |$)/gi;
 
-    // Extract snippets: <td class="result-snippet">(content)</td>
-    const snippetRegex =
-        /<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
+    // Individual field patterns
+    const linkRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
+    const snippetRegex = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i;
 
-    const links: { url: string; title: string }[] = [];
-    const snippets: string[] = [];
+    // Simpler fallback: just find all result__a links and result__snippet elements
+    const allLinks: { url: string; title: string }[] = [];
+    const allSnippets: string[] = [];
+
+    const globalLinkRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    const globalSnippetRegex = /<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
 
     let match;
 
-    while ((match = linkRegex.exec(html)) !== null) {
-        links.push({
-            url: match[1].trim(),
+    while ((match = globalLinkRegex.exec(html)) !== null) {
+        let href = match[1].trim();
+        // DuckDuckGo wraps URLs in redirects — extract the actual URL
+        const uddgMatch = href.match(/[?&]uddg=([^&]+)/);
+        if (uddgMatch) {
+            href = decodeURIComponent(uddgMatch[1]);
+        }
+        allLinks.push({
+            url: href,
             title: stripHtml(match[2]).trim(),
         });
     }
 
-    while ((match = snippetRegex.exec(html)) !== null) {
-        snippets.push(stripHtml(match[1]).trim());
+    while ((match = globalSnippetRegex.exec(html)) !== null) {
+        allSnippets.push(stripHtml(match[1]).trim());
     }
 
-    // Combine links with their corresponding snippets
-    const count = Math.min(links.length, maxResults);
+    const count = Math.min(allLinks.length, maxResults);
     for (let i = 0; i < count; i++) {
-        // Skip DuckDuckGo internal links
-        if (links[i].url.startsWith("//duckduckgo.com")) continue;
+        if (!allLinks[i].url || allLinks[i].url.startsWith("//duckduckgo")) continue;
 
         results.push({
-            title: links[i].title,
-            url: links[i].url,
-            snippet: snippets[i] || "",
+            title: allLinks[i].title || "No title",
+            url: allLinks[i].url,
+            snippet: allSnippets[i] || "",
         });
     }
 
@@ -155,3 +167,4 @@ function stripHtml(html: string): string {
         .replace(/\s+/g, " ")
         .trim();
 }
+
