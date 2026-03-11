@@ -50,10 +50,12 @@ export async function executeDiagnoseGmail(): Promise<string> {
         hasRefreshToken: !!config.gmailRefreshToken,
         clientIdLength: config.gmailClientId?.length || 0,
         refreshTokenLength: config.gmailRefreshToken?.length || 0,
+        env: process.env.NODE_ENV || "development",
     };
 
     try {
         const gmail = getGmailClient();
+        console.log("🔍 [DIAGNOSE] Attempting Gmail API call...");
         const res = await gmail.users.messages.list({ userId: "me", maxResults: 1 });
         return JSON.stringify({
             status: "success",
@@ -62,11 +64,24 @@ export async function executeDiagnoseGmail(): Promise<string> {
             messageCount: res.data.resultSizeEstimate,
         });
     } catch (error: any) {
+        const errorData = error.response?.data || {};
+        const isInvalidGrant = JSON.stringify(errorData).includes("invalid_grant");
+        const isUnauthorized = error.code === 401;
+
+        let suggestion = "Check your Railway environment variables.";
+        if (isInvalidGrant) {
+            suggestion = "Refresh token is invalid or expired. You may need to regenerate it using npx tsx scripts/get-refresh-token.ts";
+        } else if (isUnauthorized) {
+            suggestion = "Unauthorized. Check if your Client ID/Secret match the Google Cloud Console.";
+        }
+
         return JSON.stringify({
             status: "error",
             message: error.message,
             stats,
-            rawError: error.response?.data || error.message,
+            suggestion,
+            rawError: errorData,
+            errorCode: error.code,
         });
     }
 }

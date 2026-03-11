@@ -108,6 +108,11 @@ export async function runAgentLoop(
             const result = await executeTool(fnName, fnArgs);
             console.log(`  ✅ Tool result: ${result.substring(0, 200)}`);
 
+            // Extra visibility for auth errors in Railway logs
+            if (result.includes("invalid_grant") || result.includes("invalid_client") || result.includes("Unauthorized")) {
+                console.error(`🔴 Auth Error in ${fnName}: ${result}`);
+            }
+
             messages.push({
                 role: "tool",
                 tool_call_id: toolCall.id,
