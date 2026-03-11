@@ -6,6 +6,8 @@ import type { MemorySystem } from "./memory/index.js";
 import { runAgentLoop } from "./agent.js";
 import { updateRecommendationStatus } from "./memory/db.js";
 
+const PROACTIVE_CHANCE = 0.2; // 20% chance to check for recommendations after a turn
+
 export function createBot(
     config: Config,
     llm: LLMClient,
@@ -62,7 +64,7 @@ export function createBot(
             await sendResponse(ctx, result.response);
 
             // Proactive check after a delay (to let the user read the reply)
-            if (memory) {
+            if (memory && Math.random() < PROACTIVE_CHANCE) {
                 setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
             }
         } catch (error) {
@@ -119,7 +121,7 @@ export function createBot(
             await sendResponse(ctx, reply);
 
             // Proactive check
-            if (memory) {
+            if (memory && Math.random() < PROACTIVE_CHANCE) {
                 setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
             }
         } catch (error) {

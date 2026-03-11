@@ -4,6 +4,7 @@ import {
     getAllMemories,
     saveRecommendation,
     getPendingRecommendations,
+    getRecentRecommendationsForPattern,
     StoredRecommendation
 } from "./memory/db.js";
 
@@ -73,9 +74,12 @@ RESPONSE FORMAT (JSON):
             // Only act if confidence is high enough
             if (data.confidence < 0.7) return null;
 
-            // Check if we already have a pending recommendation for this pattern
-            const pending = getPendingRecommendations(chatId);
-            if (pending.some(p => p.pattern === data.pattern)) return null;
+            // Check if we already have a RECENT recommendation for this pattern (last 24h)
+            const recentRecs = getRecentRecommendationsForPattern(chatId, data.pattern, 24);
+            if (recentRecs.length > 0) {
+                console.log(`  💡 Proactive: Skipping duplicate pattern "${data.pattern}"`);
+                return null;
+            }
 
             const id = saveRecommendation(
                 chatId,

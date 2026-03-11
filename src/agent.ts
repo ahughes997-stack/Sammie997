@@ -66,7 +66,7 @@ export async function runAgentLoop(
             toolCalls.length === 0 ||
             choice.finish_reason === "stop"
         ) {
-            assistantResponse = message.content || "(No response)";
+            assistantResponse = message.content || "Got it! I'm on it.";
 
             // ── Extract memories from this turn (non-blocking) ──────
             if (memory && chatId) {

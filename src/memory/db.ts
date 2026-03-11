@@ -262,6 +262,20 @@ export function getPendingRecommendations(chatId: string): StoredRecommendation[
         .all(chatId) as StoredRecommendation[];
 }
 
+export function getRecentRecommendationsForPattern(
+    chatId: string,
+    pattern: string,
+    hours: number = 24
+): StoredRecommendation[] {
+    return getDb()
+        .prepare(
+            `SELECT * FROM recommendations 
+             WHERE chat_id = ? AND pattern = ? 
+             AND created_at > datetime('now', '-' || ? || ' hours')`
+        )
+        .all(chatId, pattern, hours) as StoredRecommendation[];
+}
+
 export function updateRecommendationStatus(id: number, status: "accepted" | "dismissed"): void {
     getDb()
         .prepare("UPDATE recommendations SET status = ?, updated_at = datetime('now') WHERE id = ?")
