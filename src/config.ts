@@ -7,6 +7,11 @@ export interface Config {
     allowedUserIds: number[];
     dataDir: string;
     serperApiKey: string | undefined;
+    gmailClientId: string | undefined;
+    gmailClientSecret: string | undefined;
+    gmailRedirectUri: string | undefined;
+    gmailRefreshToken: string | undefined;
+    pubsubTopicName: string | undefined;
 }
 
 function requireEnv(name: string): string {
@@ -47,5 +52,10 @@ export function loadConfig(): Config {
         allowedUserIds: parseUserIds(requireEnv("ALLOWED_USER_IDS")),
         dataDir: process.env.DATA_DIR || "./",
         serperApiKey: process.env.SERPER_API_KEY,
+        gmailClientId: process.env.GMAIL_CLIENT_ID,
+        gmailClientSecret: process.env.GMAIL_CLIENT_SECRET,
+        gmailRedirectUri: process.env.GMAIL_REDIRECT_URI,
+        gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN,
+        pubsubTopicName: process.env.PUBSUB_TOPIC_NAME,
     };
 }

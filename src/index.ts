@@ -4,6 +4,7 @@ import { createTranscriptionClient } from "./transcribe.js";
 import { createBot } from "./bot.js";
 import { MemorySystem } from "./memory/index.js";
 import { initializeDb, closeDb, getMemoryCount } from "./memory/db.js";
+import { startGmailPubSubListener } from "./gmail-pubsub.js";
 
 async function main() {
     console.log(`
@@ -40,6 +41,9 @@ async function main() {
 
     // ── Initialize Telegram bot ─────────────────────────────────
     const bot = createBot(config, llm, transcriber, memory);
+
+    // ── Initialize Gmail Pub/Sub listener ───────────────────────
+    await startGmailPubSubListener(bot);
 
     // Graceful shutdown
     const shutdown = () => {
