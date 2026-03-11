@@ -110,36 +110,47 @@ export async function startGmailPubSubListener(bot: any) {
 
             const messages = res.data.receivedMessages || [];
             for (const receivedMessage of messages) {
-                if (receivedMessage.message?.data) {
-                    const data = JSON.parse(
-                        Buffer.from(receivedMessage.message.data as string, "base64").toString()
-                    );
+                const ackId = receivedMessage.ackId;
+                if (!ackId) continue;
 
-                    // data should contain emailAddress and historyId
-                    // We can notify the user about a new message
-                    // Note: We'd typically use historyId to fetch changes, but for simplicity
-                    // we'll just announce that there's a new email activity.
+                console.log(`📩 [GMAIL_PUSH] Received activity message: ${ackId}`);
 
-                    for (const userId of config.allowedUserIds) {
-                        try {
-                            await bot.api.sendMessage(
-                                userId,
-                                `📧 *New Gmail Activity*\nUser: ${data.emailAddress}\nCheck your inbox for updates!`
-                            );
-                        } catch (err: any) {
-                            console.error(`❌ Failed to send Gmail notification to ${userId}:`, err.message);
-                        }
-                    }
-                }
-
-                // Acknowledge the message
-                if (receivedMessage.ackId) {
+                // Acknowledge FIRST to stop delivery loops immediately
+                try {
                     await pubsub.projects.subscriptions.acknowledge({
                         subscription: subscriptionName,
                         requestBody: {
-                            ackIds: [receivedMessage.ackId],
+                            ackIds: [ackId],
                         },
                     });
+                    console.log(`✅ [GMAIL_PUSH] Acknowledged message: ${ackId}`);
+                } catch (ackError: any) {
+                    console.error(`❌ [GMAIL_PUSH] Failed to acknowledge message ${ackId}:`, ackError.message);
+                    // If we can't acknowledge, we should NOT send the Telegram message
+                    // otherwise we will spam the user on every poll.
+                    continue;
+                }
+
+                if (receivedMessage.message?.data) {
+                    try {
+                        const data = JSON.parse(
+                            Buffer.from(receivedMessage.message.data as string, "base64").toString()
+                        );
+
+                        for (const userId of config.allowedUserIds) {
+                            try {
+                                await bot.api.sendMessage(
+                                    userId,
+                                    `📧 *New Gmail Activity*\nUser: ${data.emailAddress}\nCheck your inbox for updates!`
+                                );
+                                console.log(`📢 [GMAIL_PUSH] Notified user ${userId}`);
+                            } catch (err: any) {
+                                console.error(`❌ [GMAIL_PUSH] Failed to notify ${userId}:`, err.message);
+                            }
+                        }
+                    } catch (parseError: any) {
+                        console.error("❌ [GMAIL_PUSH] Failed to parse message data:", parseError.message);
+                    }
                 }
             }
         } catch (error: any) {
