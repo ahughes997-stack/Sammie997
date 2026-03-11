@@ -14,6 +14,7 @@ import { RecommendationEngine } from "../proactive.js";
 
 export class MemorySystem {
     private recommender: RecommendationEngine;
+    private turnCounter: number = 0;
 
     constructor(private llm: LLMClient) {
         this.recommender = new RecommendationEngine(llm);
@@ -112,12 +113,19 @@ export class MemorySystem {
             );
         }
 
-        // 3. Proactive recommendation analysis
-        this.recommender.analyzeAndSuggest(chatId).then((rec) => {
-            if (rec) {
-                console.log(`  💡 Proactive: Generated recommendation for ${chatId}: ${rec.suggestion}`);
-            }
-        }).catch((err) => console.error("  ⚠️ Proactive analysis error:", err));
+        // 3. Proactive recommendation analysis (only every 5 messages to save tokens)
+        this.turnCounter++;
+        if (this.turnCounter >= 5) {
+            console.log(`  💡 Proactive: Triggering analysis (turn ${this.turnCounter})`);
+            this.turnCounter = 0;
+            this.recommender.analyzeAndSuggest(chatId).then((rec) => {
+                if (rec) {
+                    console.log(`  💡 Proactive: Generated recommendation for ${chatId}: ${rec.suggestion}`);
+                }
+            }).catch((err) => console.error("  ⚠️ Proactive analysis error:", err));
+        } else {
+            console.log(`  💡 Proactive: Skipping until turn 5 (current: ${this.turnCounter})`);
+        }
     }
 
     /**

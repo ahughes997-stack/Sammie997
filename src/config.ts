@@ -12,6 +12,7 @@ export interface Config {
     gmailRedirectUri: string | undefined;
     gmailRefreshToken: string | undefined;
     pubsubTopicName: string | undefined;
+    llmModel: string;
 }
 
 function requireEnv(name: string): string {
@@ -57,5 +58,6 @@ export function loadConfig(): Config {
         gmailRedirectUri: process.env.GMAIL_REDIRECT_URI,
         gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN,
         pubsubTopicName: process.env.PUBSUB_TOPIC_NAME,
+        llmModel: process.env.LLM_MODEL || "google/gemini-2.0-flash-001",
     };
 }

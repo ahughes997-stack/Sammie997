@@ -57,7 +57,7 @@ export function createLLMClient(config: Config): LLMClient {
                 : [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
             const response = await client.chat.completions.create({
-                model: "anthropic/claude-sonnet-4",
+                model: config.llmModel,
                 max_tokens: 4096,
                 messages: finalMessages as any[], // cast to any for role flexibility
                 tools: tools && tools.length > 0 ? tools : undefined,

@@ -29,37 +29,32 @@ export class RecommendationEngine {
             .join("\n");
 
         const prompt = `
-You are the brain of Gravity Claw, an AI assistant. Your goal is to be PROACTIVE.
-Analyze the user's recent conversation history and core memories to find a recurring pattern or a future need.
+You are Gravity Claw's pattern analyzer. Identify ONE recurring pattern or future need from the history/memories below.
 
-RECENT HISTORY:
+HISTORY:
 ${historyText}
 
-CORE MEMORIES:
+MEMORIES:
 ${memoriesText}
 
 INSTRUCTIONS:
-1. Identify a clear pattern (e.g., user often asks for X at this time, user is planning Y, user frequently checks Z).
-2. If a strong pattern is found, generate a "Smart Recommendation".
-3. A recommendation consists of:
-   - A description of the pattern.
-   - A friendly suggestion for the user.
-   - A "suggested action" which is a tool call or a natural language command they might want you to run.
-4. If no clear pattern or helpful suggestion is found, respond with "NO_PATTERN".
+1. Identify a clear pattern (e.g., "User check weather daily", "User planning a trip").
+2. Only suggest if confidence > 0.7.
+3. If no pattern, respond "NO_PATTERN".
 
-RESPONSE FORMAT (JSON):
+RESPONSE (JSON):
 {
-  "category": "A short, stable ID for this type of pattern (e.g., 'WEATHER_CHECK', 'MEETING_PLANS', 'DAILY_GREETING')",
-  "pattern": "Brief description of the pattern",
-  "suggestion": "Friendly proactive message to the user",
-  "suggested_action": "Command or tool call",
-  "confidence": 0.0 to 1.0
+  "category": "ID_FOR_PATTERN",
+  "pattern": "Desc",
+  "suggestion": "Message for user",
+  "suggested_action": "Command/Tool",
+  "confidence": 0.0-1.0
 }
 `;
 
         try {
             const response = await this.llm.chat([
-                { role: "system", content: "You are a pattern analysis expert focused on proactive AI behavior." },
+                { role: "system", content: "You analyze patterns for proactive AI behavior. Be concise." },
                 { role: "user", content: prompt }
             ]);
 
