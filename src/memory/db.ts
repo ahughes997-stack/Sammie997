@@ -101,6 +101,7 @@ function initSchema(db: Database.Database): void {
       suggested_action TEXT,
       confidence REAL NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'dismissed')) DEFAULT 'pending',
+      notified_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -236,6 +237,7 @@ export interface StoredRecommendation {
     suggested_action: string | null;
     confidence: number;
     status: "pending" | "accepted" | "dismissed";
+    notified_at: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -258,8 +260,14 @@ export function saveRecommendation(
 
 export function getPendingRecommendations(chatId: string): StoredRecommendation[] {
     return getDb()
-        .prepare("SELECT * FROM recommendations WHERE chat_id = ? AND status = 'pending' ORDER BY confidence DESC")
+        .prepare("SELECT * FROM recommendations WHERE chat_id = ? AND status = 'pending' AND notified_at IS NULL ORDER BY confidence DESC")
         .all(chatId) as StoredRecommendation[];
+}
+
+export function markRecommendationNotified(id: number): void {
+    getDb()
+        .prepare("UPDATE recommendations SET notified_at = datetime('now') WHERE id = ?")
+        .run(id);
 }
 
 export function getRecentRecommendationsForPattern(

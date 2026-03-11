@@ -4,9 +4,8 @@ import type { LLMClient } from "./llm.js";
 import type { TranscriptionClient } from "./transcribe.js";
 import type { MemorySystem } from "./memory/index.js";
 import { runAgentLoop } from "./agent.js";
-import { updateRecommendationStatus } from "./memory/db.js";
+import { updateRecommendationStatus, markRecommendationNotified } from "./memory/db.js";
 
-const PROACTIVE_CHANCE = 0.2; // 20% chance to check for recommendations after a turn
 
 export function createBot(
     config: Config,
@@ -64,7 +63,7 @@ export function createBot(
             await sendResponse(ctx, result.response);
 
             // Proactive check after a delay (to let the user read the reply)
-            if (memory && Math.random() < PROACTIVE_CHANCE) {
+            if (memory) {
                 setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
             }
         } catch (error) {
@@ -121,7 +120,7 @@ export function createBot(
             await sendResponse(ctx, reply);
 
             // Proactive check
-            if (memory && Math.random() < PROACTIVE_CHANCE) {
+            if (memory) {
                 setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
             }
         } catch (error) {
@@ -194,6 +193,9 @@ async function checkForRecommendations(ctx: any, chatId: string, memory: MemoryS
                 parse_mode: "Markdown",
                 reply_markup: keyboard
             });
+
+            // Mark as notified so we don't spam it
+            markRecommendationNotified(rec.id);
         }
     } catch (err: any) {
         console.error("  ⚠️ Proactive check error:", err.message);

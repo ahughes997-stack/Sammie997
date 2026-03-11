@@ -49,6 +49,7 @@ INSTRUCTIONS:
 
 RESPONSE FORMAT (JSON):
 {
+  "category": "A short, stable ID for this type of pattern (e.g., 'WEATHER_CHECK', 'MEETING_PLANS', 'DAILY_GREETING')",
   "pattern": "Brief description of the pattern",
   "suggestion": "Friendly proactive message to the user",
   "suggested_action": "Command or tool call",
@@ -74,16 +75,17 @@ RESPONSE FORMAT (JSON):
             // Only act if confidence is high enough
             if (data.confidence < 0.7) return null;
 
-            // Check if we already have a RECENT recommendation for this pattern (last 24h)
-            const recentRecs = getRecentRecommendationsForPattern(chatId, data.pattern, 24);
+            // Check if we already have a RECENT recommendation for this category (last 24h)
+            // We use the category for more stable duplicate detection than the pattern text.
+            const recentRecs = getRecentRecommendationsForPattern(chatId, data.category, 24);
             if (recentRecs.length > 0) {
-                console.log(`  💡 Proactive: Skipping duplicate pattern "${data.pattern}"`);
+                console.log(`  💡 Proactive: Skipping duplicate category "${data.category}"`);
                 return null;
             }
 
             const id = saveRecommendation(
                 chatId,
-                data.pattern,
+                data.category, // Save the stable category as the pattern identifier
                 data.suggestion,
                 data.confidence,
                 data.suggested_action
@@ -97,6 +99,7 @@ RESPONSE FORMAT (JSON):
                 suggested_action: data.suggested_action,
                 confidence: data.confidence,
                 status: "pending",
+                notified_at: null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
