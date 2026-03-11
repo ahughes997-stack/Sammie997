@@ -4,7 +4,7 @@ import type { LLMClient } from "./llm.js";
 import type { TranscriptionClient } from "./transcribe.js";
 import type { MemorySystem } from "./memory/index.js";
 import { runAgentLoop } from "./agent.js";
-import { updateRecommendationStatus, markRecommendationNotified } from "./memory/db.js";
+import { updateRecommendationStatus, markRecommendationNotified, markAllPendingRecommendationsNotified } from "./memory/db.js";
 
 
 export function createBot(
@@ -194,8 +194,8 @@ async function checkForRecommendations(ctx: any, chatId: string, memory: MemoryS
                 reply_markup: keyboard
             });
 
-            // Mark as notified so we don't spam it
-            markRecommendationNotified(rec.id);
+            // Mark ALL identical pending recommendations as notified so we don't spam
+            markAllPendingRecommendationsNotified(chatId, rec.pattern);
         }
     } catch (err: any) {
         console.error("  ⚠️ Proactive check error:", err.message);

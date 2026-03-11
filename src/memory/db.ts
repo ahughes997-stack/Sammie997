@@ -119,6 +119,10 @@ function initSchema(db: Database.Database): void {
         console.log("  🩹 Migration: Adding 'notified_at' column to recommendations table");
         db.exec("ALTER TABLE recommendations ADD COLUMN notified_at TEXT");
     }
+
+    // ── Emergency Cleanup: Clear old backlog ──────────────────────
+    console.log("  🩹 Maintenance: Clearing old recommendation backlog");
+    db.exec("UPDATE recommendations SET status = 'dismissed', notified_at = datetime('now') WHERE status = 'pending' AND created_at < datetime('now', '-5 minutes')");
 }
 
 // ── Message CRUD ────────────────────────────────────────────────
@@ -278,6 +282,20 @@ export function markRecommendationNotified(id: number): void {
     getDb()
         .prepare("UPDATE recommendations SET notified_at = datetime('now') WHERE id = ?")
         .run(id);
+}
+
+/**
+ * Mark all pending recommendations for a specific pattern/category as notified.
+ * Prevents "jamming" when multiple identical records exist in the backlog.
+ */
+export function markAllPendingRecommendationsNotified(chatId: string, pattern: string): void {
+    getDb()
+        .prepare(
+            `UPDATE recommendations 
+             SET notified_at = datetime('now') 
+             WHERE chat_id = ? AND pattern = ? AND status = 'pending'`
+        )
+        .run(chatId, pattern);
 }
 
 export function getRecentRecommendationsForPattern(
