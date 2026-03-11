@@ -16,7 +16,7 @@ export interface Config {
 }
 
 function requireEnv(name: string): string {
-    const value = process.env[name];
+    const value = process.env[name]?.trim();
     if (!value) {
         console.error(`❌ Missing required environment variable: ${name}`);
         console.error(`   Copy .env.example to .env and fill in your values.`);

@@ -74,9 +74,12 @@ export async function startGmailPubSubListener(bot: any) {
     }
 
     const pubsub = getPubSubClient();
-    const subscriptionName = `${config.pubsubTopicName}-sub`;
 
-    console.log(`✅ Gmail Pub/Sub listener starting...`);
+    // Correctly derive subscription name from topic name
+    // Topics: projects/ID/topics/NAME -> Subscriptions: projects/ID/subscriptions/NAME-sub
+    const subscriptionName = config.pubsubTopicName.replace("/topics/", "/subscriptions/") + "-sub";
+
+    console.log(`✅ Gmail Pub/Sub listener starting for: ${subscriptionName}`);
 
     // Setup Gmail Watch
     await setupGmailWatch();

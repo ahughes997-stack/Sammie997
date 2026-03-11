@@ -112,6 +112,7 @@ export async function executeListGmailMessages(args: {
     query?: string;
     maxResults?: number;
 }): Promise<string> {
+    console.log("🛠️ [GMAIL_TOOL] list_gmail_messages", args);
     try {
         const gmail = getGmailClient();
         const res = await gmail.users.messages.list({
@@ -121,12 +122,14 @@ export async function executeListGmailMessages(args: {
         });
 
         const messages = res.data.messages || [];
+        console.log(`✅ [GMAIL_TOOL] found ${messages.length} messages`);
         if (messages.length === 0) {
             return "No messages found.";
         }
 
         return JSON.stringify(messages, null, 2);
     } catch (error: any) {
+        console.error("❌ [GMAIL_TOOL] list_gmail_messages error:", error.message);
         return JSON.stringify({ error: error.message });
     }
 }
