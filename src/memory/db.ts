@@ -109,6 +109,16 @@ function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_recommendations_chat
       ON recommendations(chat_id, status);
   `);
+
+    // ── Migrations ────────────────────────────────────────────────
+    // Ensure 'notified_at' exists if the table was created before that column was added.
+    const columns = db.prepare("PRAGMA table_info(recommendations)").all() as any[];
+    const hasNotifiedAt = columns.some((c) => c.name === "notified_at");
+
+    if (!hasNotifiedAt) {
+        console.log("  🩹 Migration: Adding 'notified_at' column to recommendations table");
+        db.exec("ALTER TABLE recommendations ADD COLUMN notified_at TEXT");
+    }
 }
 
 // ── Message CRUD ────────────────────────────────────────────────
