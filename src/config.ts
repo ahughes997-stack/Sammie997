@@ -55,9 +55,6 @@ export function loadConfig(): Config {
         serperApiKey: process.env.SERPER_API_KEY,
         gmailClientId: process.env.GMAIL_CLIENT_ID,
         gmailClientSecret: process.env.GMAIL_CLIENT_SECRET,
-        gmailRedirectUri: process.env.GMAIL_REDIRECT_URI,
-        gmailRefreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        pubsubTopicName: process.env.PUBSUB_TOPIC_NAME,
         llmModel: process.env.LLM_MODEL || "google/gemini-2.0-flash-001",
     };
 }
