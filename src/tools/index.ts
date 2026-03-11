@@ -12,6 +12,8 @@ import {
     executeSendGmailMessage,
     createGmailDraftTool,
     executeCreateGmailDraft,
+    diagnoseGmailTool,
+    executeDiagnoseGmail,
 } from "./gmail.js";
 
 // ── Tool Registry ──────────────────────────────────────────────
@@ -52,6 +54,10 @@ const allTools: ToolDefinition[] = [
         spec: createGmailDraftTool,
         execute: async (args) =>
             executeCreateGmailDraft(args as { to: string; subject: string; body: string }),
+    },
+    {
+        spec: diagnoseGmailTool,
+        execute: async () => executeDiagnoseGmail(),
     },
 ];
 

@@ -2,9 +2,8 @@ import { google } from "googleapis";
 import { loadConfig } from "../config.js";
 import type { ChatCompletionTool } from "openai/resources/chat/completions.js";
 
-const config = loadConfig();
-
 function getGmailClient() {
+    const config = loadConfig(); // Refresh config from process.env
     if (
         !config.gmailClientId ||
         !config.gmailClientSecret ||
@@ -25,6 +24,51 @@ function getGmailClient() {
     });
 
     return google.gmail({ version: "v1", auth: oauth2Client });
+}
+
+/**
+ * Diagnostic tool to check Gmail authentication status and environment.
+ */
+export const diagnoseGmailTool: ChatCompletionTool = {
+    type: "function",
+    function: {
+        name: "diagnose_gmail",
+        description: "Check Gmail authentication status and verify environment variables.",
+        parameters: {
+            type: "object",
+            properties: {},
+        },
+    },
+};
+
+export async function executeDiagnoseGmail(): Promise<string> {
+    const config = loadConfig();
+    const stats = {
+        hasClientId: !!config.gmailClientId,
+        hasClientSecret: !!config.gmailClientSecret,
+        hasRedirectUri: !!config.gmailRedirectUri,
+        hasRefreshToken: !!config.gmailRefreshToken,
+        clientIdLength: config.gmailClientId?.length || 0,
+        refreshTokenLength: config.gmailRefreshToken?.length || 0,
+    };
+
+    try {
+        const gmail = getGmailClient();
+        const res = await gmail.users.messages.list({ userId: "me", maxResults: 1 });
+        return JSON.stringify({
+            status: "success",
+            message: "Successfully connected to Gmail API",
+            stats,
+            messageCount: res.data.resultSizeEstimate,
+        });
+    } catch (error: any) {
+        return JSON.stringify({
+            status: "error",
+            message: error.message,
+            stats,
+            rawError: error.response?.data || error.message,
+        });
+    }
 }
 
 // ── List Messages ────────────────────────────────────────────────
