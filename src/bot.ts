@@ -1,9 +1,10 @@
-import { Bot } from "grammy";
+import { Bot, InlineKeyboard } from "grammy";
 import type { Config } from "./config.js";
 import type { LLMClient } from "./llm.js";
 import type { TranscriptionClient } from "./transcribe.js";
 import type { MemorySystem } from "./memory/index.js";
 import { runAgentLoop } from "./agent.js";
+import { updateRecommendationStatus } from "./memory/db.js";
 
 export function createBot(
     config: Config,
@@ -24,6 +25,26 @@ export function createBot(
         await next();
     });
 
+    // ── Callback Query handler ───────────────────────────────────
+    bot.callbackQuery(/^(acc|dis)_(.+)$/, async (ctx) => {
+        const [_, action, idStr] = ctx.match!;
+        const id = parseInt(idStr);
+        const status = action === "acc" ? "accepted" : "dismissed";
+
+        try {
+            updateRecommendationStatus(id, status);
+            const text = action === "acc"
+                ? "✅ Accepted! I'll keep this pattern in mind."
+                : "❌ Dismissed. I'll avoid suggesting this for now.";
+
+            await ctx.answerCallbackQuery({ text });
+            await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+            await ctx.reply(text);
+        } catch (err: any) {
+            console.error("  ⚠️ Callback error:", err.message);
+        }
+    });
+
     // ── Text message handler ─────────────────────────────────────
     bot.on("message:text", async (ctx) => {
         const text = ctx.message.text;
@@ -39,6 +60,11 @@ export function createBot(
                 `📤 Response (${result.iterations} iters, ${result.toolCalls} tools)`
             );
             await sendResponse(ctx, result.response);
+
+            // Proactive check after a delay (to let the user read the reply)
+            if (memory) {
+                setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
+            }
         } catch (error) {
             console.error("❌ Agent error:", error);
             await ctx.reply(
@@ -91,6 +117,11 @@ export function createBot(
             // Reply with transcription + response
             const reply = `🎤 *Heard:* "${transcript}"\n\n${result.response}`;
             await sendResponse(ctx, reply);
+
+            // Proactive check
+            if (memory) {
+                setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
+            }
         } catch (error) {
             console.error("❌ Voice error:", error);
             const msg =
@@ -144,4 +175,25 @@ function splitMessage(text: string, maxLen: number): string[] {
     }
 
     return chunks;
+}
+
+/** Check for pending recommendations and send them to the user */
+async function checkForRecommendations(ctx: any, chatId: string, memory: MemorySystem) {
+    try {
+        const pending = memory.getPendingRecommendations(chatId);
+        if (pending.length > 0) {
+            // Send the most confident one
+            const rec = pending[0];
+            const keyboard = new InlineKeyboard()
+                .text("✅ Accept", `acc_${rec.id}`)
+                .text("❌ Dismiss", `dis_${rec.id}`);
+
+            await ctx.reply(`💡 *Proactive Suggestion*\n\n${rec.suggestion}`, {
+                parse_mode: "Markdown",
+                reply_markup: keyboard
+            });
+        }
+    } catch (err: any) {
+        console.error("  ⚠️ Proactive check error:", err.message);
+    }
 }

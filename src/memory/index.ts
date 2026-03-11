@@ -5,12 +5,19 @@ import {
     searchMemories,
     getMemoryCount,
     getRecentSummaries,
+    getPendingRecommendations,
     type StoredMemory,
+    type StoredRecommendation,
 } from "./db.js";
 import { extractMemories, saveNewMemories } from "./extractor.js";
+import { RecommendationEngine } from "../proactive.js";
 
 export class MemorySystem {
-    constructor(private llm: LLMClient) { }
+    private recommender: RecommendationEngine;
+
+    constructor(private llm: LLMClient) {
+        this.recommender = new RecommendationEngine(llm);
+    }
 
     /**
      * Retrieve context relevant to the current message.
@@ -104,5 +111,19 @@ export class MemorySystem {
                 `  🧠 Memory: extracted ${extracted.length}, saved ${saved}, total ${total}`
             );
         }
+
+        // 3. Proactive recommendation analysis
+        this.recommender.analyzeAndSuggest(chatId).then((rec) => {
+            if (rec) {
+                console.log(`  💡 Proactive: Generated recommendation for ${chatId}: ${rec.suggestion}`);
+            }
+        }).catch((err) => console.error("  ⚠️ Proactive analysis error:", err));
+    }
+
+    /**
+     * Get pending recommendations for a user.
+     */
+    getPendingRecommendations(chatId: string): StoredRecommendation[] {
+        return getPendingRecommendations(chatId);
     }
 }

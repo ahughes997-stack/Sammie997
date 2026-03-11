@@ -91,6 +91,22 @@ function initSchema(db: Database.Database): void {
       message_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    
+    -- Smart Recommendations
+    CREATE TABLE IF NOT EXISTS recommendations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      chat_id TEXT NOT NULL,
+      pattern TEXT NOT NULL,
+      suggestion TEXT NOT NULL,
+      suggested_action TEXT,
+      confidence REAL NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'dismissed')) DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_recommendations_chat
+      ON recommendations(chat_id, status);
   `);
 }
 
@@ -208,6 +224,48 @@ export function getRecentSummaries(limit: number = 5): { summary: string; create
             "SELECT summary, created_at FROM summaries ORDER BY created_at DESC LIMIT ?"
         )
         .all(limit) as { summary: string; created_at: string }[];
+}
+
+// ── Recommendation CRUD ─────────────────────────────────────────
+
+export interface StoredRecommendation {
+    id: number;
+    chat_id: string;
+    pattern: string;
+    suggestion: string;
+    suggested_action: string | null;
+    confidence: number;
+    status: "pending" | "accepted" | "dismissed";
+    created_at: string;
+    updated_at: string;
+}
+
+export function saveRecommendation(
+    chatId: string,
+    pattern: string,
+    suggestion: string,
+    confidence: number,
+    suggestedAction?: string
+): number {
+    const result = getDb()
+        .prepare(
+            `INSERT INTO recommendations (chat_id, pattern, suggestion, confidence, suggested_action) 
+             VALUES (?, ?, ?, ?, ?)`
+        )
+        .run(chatId, pattern, suggestion, confidence, suggestedAction || null);
+    return result.lastInsertRowid as number;
+}
+
+export function getPendingRecommendations(chatId: string): StoredRecommendation[] {
+    return getDb()
+        .prepare("SELECT * FROM recommendations WHERE chat_id = ? AND status = 'pending' ORDER BY confidence DESC")
+        .all(chatId) as StoredRecommendation[];
+}
+
+export function updateRecommendationStatus(id: number, status: "accepted" | "dismissed"): void {
+    getDb()
+        .prepare("UPDATE recommendations SET status = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(status, id);
 }
 
 // ── Cleanup ─────────────────────────────────────────────────────

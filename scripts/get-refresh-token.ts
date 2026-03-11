@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import readline from "readline";
+import fs from "fs";
 import "dotenv/config";
 
 /**
@@ -46,6 +47,11 @@ async function main() {
             const { tokens } = await oauth2Client.getToken(code);
             console.log("\n✅ Success! Your tokens:");
             console.log(JSON.stringify(tokens, null, 2));
+
+            // Save to file to avoid terminal mangling
+            fs.writeFileSync("gmail-tokens.json", JSON.stringify(tokens, null, 2));
+            console.log("\n📌 Tokens also saved to 'gmail-tokens.json'.");
+
             console.log("\n📌 Copy the 'refresh_token' to your .env file.");
         } catch (err: any) {
             console.error("❌ Error retrieving access token", err.message);
