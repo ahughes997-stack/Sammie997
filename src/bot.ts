@@ -66,10 +66,10 @@ export function createBot(
             if (memory) {
                 setTimeout(() => checkForRecommendations(ctx, chatId, memory), 3000);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("❌ Agent error:", error);
             await ctx.reply(
-                "Something went wrong processing your message. Check the console for details."
+                `Something went wrong: ${error.message}\n\nPlease check the console for details.`
             );
         }
     });

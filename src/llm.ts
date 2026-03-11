@@ -50,10 +50,16 @@ export function createLLMClient(config: Config): LLMClient {
             messages: ChatCompletionMessageParam[],
             tools?: ChatCompletionTool[]
         ): Promise<ChatCompletion> {
+            // Only prepend system prompt if not already present
+            const firstMessage = messages[0];
+            const finalMessages = (firstMessage && firstMessage.role === "system")
+                ? messages
+                : [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
+
             const response = await client.chat.completions.create({
                 model: "anthropic/claude-sonnet-4",
                 max_tokens: 4096,
-                messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+                messages: finalMessages as any[], // cast to any for role flexibility
                 tools: tools && tools.length > 0 ? tools : undefined,
             });
 
