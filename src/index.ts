@@ -60,6 +60,7 @@ async function main() {
         `\n🚀 Bot is running — listening for messages via long-polling`
     );
     console.log(`   No web server. No exposed ports. Telegram-only.\n`);
+    console.log(`✅ System startup sequence complete`);
     await bot.start();
 }
 
