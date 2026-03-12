@@ -72,8 +72,8 @@ export async function startTodoistPoker(bot: any) {
             console.error("❌ [TODOIST_POKER] Error checking tasks:", error.message);
         }
 
-        // Run check every hour (3600000 ms)
-        setTimeout(checkTasks, 3600000);
+        // Run check every 6 hours (21600000 ms)
+        setTimeout(checkTasks, 21600000);
     };
 
     // Initial check after 30 seconds to let bot warm up
