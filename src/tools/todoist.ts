@@ -27,7 +27,20 @@ export async function executeDiagnoseTodoist(): Promise<string> {
     try {
         const api = getTodoistApi();
         console.log("🔍 [DIAGNOSE_TODOIST] Attempting to fetch projects...");
-        const projects = (await api.getProjects() as unknown) as any[];
+        const projects: any = await api.getProjects();
+
+        console.log("📊 [DIAGNOSE_TODOIST] Projects response type:", typeof projects);
+        console.log("📊 [DIAGNOSE_TODOIST] Is array?", Array.isArray(projects));
+
+        if (!Array.isArray(projects)) {
+            console.log("⚠️ [DIAGNOSE_TODOIST] Response is not an array:", JSON.stringify(projects));
+            return JSON.stringify({
+                status: "error",
+                message: "API returned non-array response",
+                raw: projects
+            });
+        }
+
         return JSON.stringify({
             status: "success",
             message: "Successfully connected to Todoist API",
@@ -66,11 +79,15 @@ export async function executeListTodoistTasks(args: { filter?: string }): Promis
     console.log("🛠️ [TODOIST_TOOL] list_todoist_tasks", args);
     try {
         const api = getTodoistApi();
-        // The SDK might expect no args or different args depending on version.
-        // Let's try passing it correctly and casting if needed.
-        const tasks = (await api.getTasks(args as any) as unknown) as any[];
+        const tasks: any = await api.getTasks(args as any);
 
-        if (!Array.isArray(tasks) || tasks.length === 0) {
+        console.log("📊 [TODOIST_TOOL] Tasks response is array?", Array.isArray(tasks));
+        if (!Array.isArray(tasks)) {
+            console.log("⚠️ [TODOIST_TOOL] Tasks response is not an array:", JSON.stringify(tasks));
+            return "Error: Todoist API returned an unexpected response format.";
+        }
+
+        if (tasks.length === 0) {
             return "No active tasks found.";
         }
 
