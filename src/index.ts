@@ -5,6 +5,7 @@ import { createBot } from "./bot.js";
 import { MemorySystem } from "./memory/index.js";
 import { initializeDb, closeDb, getMemoryCount } from "./memory/db.js";
 import { startGmailPubSubListener } from "./gmail-pubsub.js";
+import { startTodoistPoker } from "./todoist-poker.js";
 
 async function main() {
     console.log(`
@@ -44,6 +45,9 @@ async function main() {
 
     // ── Initialize Gmail Pub/Sub listener ───────────────────────
     await startGmailPubSubListener(bot);
+
+    // ── Initialize Todoist Poker ──────────────────────────────
+    await startTodoistPoker(bot);
 
     // Graceful shutdown
     const shutdown = () => {

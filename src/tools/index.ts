@@ -15,6 +15,14 @@ import {
     diagnoseGmailTool,
     executeDiagnoseGmail,
 } from "./gmail.js";
+import {
+    listTodoistTasksTool,
+    executeListTodoistTasks,
+    addTodoistTaskTool,
+    executeAddTodoistTask,
+    completeTodoistTaskTool,
+    executeCompleteTodoistTask,
+} from "./todoist.js";
 
 // ── Tool Registry ──────────────────────────────────────────────
 // Add new tools here. The agent loop uses this to resolve tool calls.
@@ -58,6 +66,19 @@ const allTools: ToolDefinition[] = [
     {
         spec: diagnoseGmailTool,
         execute: async () => executeDiagnoseGmail(),
+    },
+    {
+        spec: listTodoistTasksTool,
+        execute: async (args) => executeListTodoistTasks(args as { filter?: string }),
+    },
+    {
+        spec: addTodoistTaskTool,
+        execute: async (args) =>
+            executeAddTodoistTask(args as { content: string; dueString?: string; priority?: number }),
+    },
+    {
+        spec: completeTodoistTaskTool,
+        execute: async (args) => executeCompleteTodoistTask(args as { taskId: string }),
     },
 ];
 

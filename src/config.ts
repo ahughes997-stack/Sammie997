@@ -14,6 +14,9 @@ export interface Config {
     pubsubTopicName: string | undefined;
     llmModel: string;
     gmailNotificationsEnabled: boolean;
+    todoistToken: string | undefined;
+    todoistPokingEnabled: boolean;
+    todoistStaleThresholdDays: number;
 }
 
 function requireEnv(name: string): string {
@@ -61,6 +64,9 @@ export function loadConfig(): Config {
         pubsubTopicName: requireEnv("PUBSUB_TOPIC_NAME"),
         llmModel: process.env.LLM_MODEL || "google/gemini-2.0-flash-001",
         gmailNotificationsEnabled: process.env.GMAIL_NOTIFICATIONS_ENABLED !== "false",
+        todoistToken: process.env.TODOIST_TOKEN,
+        todoistPokingEnabled: process.env.TODOIST_POKING_ENABLED !== "false",
+        todoistStaleThresholdDays: parseInt(process.env.TODOIST_STALE_THRESHOLD_DAYS || "2", 10),
     };
 
     // Masked logging for debugging Railway environment
