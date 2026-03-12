@@ -14,7 +14,13 @@ export async function startTodoistPoker(bot: any) {
     const checkTasks = async () => {
         try {
             console.log("🔍 [TODOIST_POKER] Checking for overdue or stale tasks...");
-            const tasks = (await api.getTasks() as unknown) as any[];
+            const tasksRaw: any = await api.getTasks();
+            const tasks = Array.isArray(tasksRaw) ? tasksRaw : (tasksRaw?.results || []);
+
+            if (!Array.isArray(tasks)) {
+                console.log("⚠️ [TODOIST_POKER] Tasks response is invalid:", JSON.stringify(tasksRaw));
+                return;
+            }
 
             const now = new Date();
             const staleThreshold = config.todoistStaleThresholdDays * 24 * 60 * 60 * 1000;

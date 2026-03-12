@@ -27,17 +27,16 @@ export async function executeDiagnoseTodoist(): Promise<string> {
     try {
         const api = getTodoistApi();
         console.log("🔍 [DIAGNOSE_TODOIST] Attempting to fetch projects...");
-        const projects: any = await api.getProjects();
+        const projectsRaw: any = await api.getProjects();
+        const projects = Array.isArray(projectsRaw) ? projectsRaw : (projectsRaw?.results || []);
 
-        console.log("📊 [DIAGNOSE_TODOIST] Projects response type:", typeof projects);
-        console.log("📊 [DIAGNOSE_TODOIST] Is array?", Array.isArray(projects));
+        console.log("📊 [DIAGNOSE_TODOIST] Projects count:", projects.length);
 
         if (!Array.isArray(projects)) {
-            console.log("⚠️ [DIAGNOSE_TODOIST] Response is not an array:", JSON.stringify(projects));
             return JSON.stringify({
                 status: "error",
-                message: "API returned non-array response",
-                raw: projects
+                message: "API returned unexpected format",
+                raw: projectsRaw
             });
         }
 
@@ -79,11 +78,11 @@ export async function executeListTodoistTasks(args: { filter?: string }): Promis
     console.log("🛠️ [TODOIST_TOOL] list_todoist_tasks", args);
     try {
         const api = getTodoistApi();
-        const tasks: any = await api.getTasks(args as any);
+        const tasksRaw: any = await api.getTasks(args as any);
+        const tasks = Array.isArray(tasksRaw) ? tasksRaw : (tasksRaw?.results || []);
 
-        console.log("📊 [TODOIST_TOOL] Tasks response is array?", Array.isArray(tasks));
         if (!Array.isArray(tasks)) {
-            console.log("⚠️ [TODOIST_TOOL] Tasks response is not an array:", JSON.stringify(tasks));
+            console.log("⚠️ [TODOIST_TOOL] Tasks response is invalid:", JSON.stringify(tasksRaw));
             return "Error: Todoist API returned an unexpected response format.";
         }
 
@@ -91,7 +90,7 @@ export async function executeListTodoistTasks(args: { filter?: string }): Promis
             return "No active tasks found.";
         }
 
-        return JSON.stringify((tasks as any[]).map(t => ({
+        return JSON.stringify(tasks.map((t: any) => ({
             id: t.id,
             content: t.content,
             due: t.due?.string || "No due date",
