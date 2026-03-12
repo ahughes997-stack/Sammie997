@@ -68,16 +68,22 @@ async function setupGmailWatch() {
 }
 
 export async function startGmailPubSubListener(bot: any) {
+    if (!config.gmailNotificationsEnabled) {
+        console.log("📴 Gmail notifications are disabled via configuration.");
+        return;
+    }
+
     if (!config.pubsubTopicName) {
         console.log("⚠️  Gmail Pub/Sub topic not configured. Real-time notifications disabled.");
         return;
     }
 
+    const topicName = config.pubsubTopicName;
     const pubsub = getPubSubClient();
 
     // Correctly derive subscription name from topic name
     // Topics: projects/ID/topics/NAME -> Subscriptions: projects/ID/subscriptions/NAME-sub
-    const subscriptionName = config.pubsubTopicName.replace("/topics/", "/subscriptions/") + "-sub";
+    const subscriptionName = topicName.replace("/topics/", "/subscriptions/") + "-sub";
 
     console.log(`✅ Gmail Pub/Sub listener starting for: ${subscriptionName}`);
 
@@ -137,19 +143,49 @@ export async function startGmailPubSubListener(bot: any) {
                             Buffer.from(receivedMessage.message.data as string, "base64").toString()
                         );
 
-                        for (const userId of config.allowedUserIds) {
-                            try {
-                                await bot.api.sendMessage(
-                                    userId,
-                                    `📧 *New Gmail Activity*\nUser: ${data.emailAddress}\nCheck your inbox for updates!`
-                                );
-                                console.log(`📢 [GMAIL_PUSH] Notified user ${userId}`);
-                            } catch (err: any) {
-                                console.error(`❌ [GMAIL_PUSH] Failed to notify ${userId}:`, err.message);
+                        // Fetch the latest message details to filter and provide rich info
+                        const gmail = getGmailClient();
+                        const history = await gmail.users.history.list({
+                            userId: "me",
+                            startHistoryId: data.historyId,
+                            historyTypes: ["messageAdded"],
+                        });
+
+                        const messageAdded = history.data.history?.[0]?.messagesAdded?.[0]?.message;
+                        if (messageAdded?.id) {
+                            const detail = await gmail.users.messages.get({
+                                userId: "me",
+                                id: messageAdded.id,
+                                format: "metadata",
+                                metadataHeaders: ["From", "Subject"],
+                            });
+
+                            const labels = detail.data.labelIds || [];
+                            const isPrimary = !labels.some(l =>
+                                ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_UPDATES", "CATEGORY_FORUMS"].includes(l)
+                            );
+
+                            if (isPrimary) {
+                                const from = detail.data.payload?.headers?.find(h => h.name === "From")?.value || "Unknown Sender";
+                                const subject = detail.data.payload?.headers?.find(h => h.name === "Subject")?.value || "(No Subject)";
+
+                                for (const userId of config.allowedUserIds) {
+                                    try {
+                                        await bot.api.sendMessage(
+                                            userId,
+                                            `📧 *New Primary Email*\n👤 *From:* ${from}\n📝 *Subj:* ${subject}`
+                                        );
+                                        console.log(`📢 [GMAIL_PUSH] Notified user ${userId}`);
+                                    } catch (err: any) {
+                                        console.error(`❌ [GMAIL_PUSH] Failed to notify ${userId}:`, err.message);
+                                    }
+                                }
+                            } else {
+                                console.log(`⏭️ [GMAIL_PUSH] Skipping non-primary email: ${labels.join(", ")}`);
                             }
                         }
                     } catch (parseError: any) {
-                        console.error("❌ [GMAIL_PUSH] Failed to parse message data:", parseError.message);
+                        console.error("❌ [GMAIL_PUSH] Failed to process message data:", parseError.message);
                     }
                 }
             }

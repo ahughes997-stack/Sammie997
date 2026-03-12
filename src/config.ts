@@ -13,6 +13,7 @@ export interface Config {
     gmailRefreshToken: string | undefined;
     pubsubTopicName: string | undefined;
     llmModel: string;
+    gmailNotificationsEnabled: boolean;
 }
 
 function requireEnv(name: string): string {
@@ -59,6 +60,7 @@ export function loadConfig(): Config {
         gmailRefreshToken: requireEnv("GMAIL_REFRESH_TOKEN"),
         pubsubTopicName: requireEnv("PUBSUB_TOPIC_NAME"),
         llmModel: process.env.LLM_MODEL || "google/gemini-2.0-flash-001",
+        gmailNotificationsEnabled: process.env.GMAIL_NOTIFICATIONS_ENABLED !== "false",
     };
 
     // Masked logging for debugging Railway environment
