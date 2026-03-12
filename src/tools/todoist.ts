@@ -10,6 +10,40 @@ function getTodoistApi() {
     return new TodoistApi(config.todoistToken);
 }
 
+// ── Diagnose Todoist ─────────────────────────────────────────────
+export const diagnoseTodoistTool: ChatCompletionTool = {
+    type: "function",
+    function: {
+        name: "diagnose_todoist",
+        description: "Check Todoist authentication status and verify API connectivity.",
+        parameters: {
+            type: "object",
+            properties: {},
+        },
+    },
+};
+
+export async function executeDiagnoseTodoist(): Promise<string> {
+    try {
+        const api = getTodoistApi();
+        console.log("🔍 [DIAGNOSE_TODOIST] Attempting to fetch projects...");
+        const projects = (await api.getProjects() as unknown) as any[];
+        return JSON.stringify({
+            status: "success",
+            message: "Successfully connected to Todoist API",
+            projectCount: projects.length,
+            projects: projects.map((p: any) => ({ id: p.id, name: p.name }))
+        });
+    } catch (error: any) {
+        console.error("❌ [DIAGNOSE_TODOIST] Error:", error.message);
+        return JSON.stringify({
+            status: "error",
+            message: error.message,
+            suggestion: "Check your TODOIST_TOKEN in Railway settings."
+        });
+    }
+}
+
 // ── List Tasks ──────────────────────────────────────────────────
 export const listTodoistTasksTool: ChatCompletionTool = {
     type: "function",
@@ -29,11 +63,12 @@ export const listTodoistTasksTool: ChatCompletionTool = {
 };
 
 export async function executeListTodoistTasks(args: { filter?: string }): Promise<string> {
+    console.log("🛠️ [TODOIST_TOOL] list_todoist_tasks", args);
     try {
         const api = getTodoistApi();
         // The SDK might expect no args or different args depending on version.
         // Let's try passing it correctly and casting if needed.
-        const tasks = await api.getTasks(args as any);
+        const tasks = (await api.getTasks(args as any) as unknown) as any[];
 
         if (!Array.isArray(tasks) || tasks.length === 0) {
             return "No active tasks found.";
@@ -84,6 +119,7 @@ export async function executeAddTodoistTask(args: {
     dueString?: string;
     priority?: number;
 }): Promise<string> {
+    console.log("🛠️ [TODOIST_TOOL] add_todoist_task", args);
     try {
         const api = getTodoistApi();
         const task = await api.addTask({
@@ -91,6 +127,7 @@ export async function executeAddTodoistTask(args: {
             dueString: args.dueString,
             priority: args.priority,
         });
+        console.log(`✅ [TODOIST_TOOL] Task created: ${task.id}`);
 
         return `Task created successfully: ${task.content} (ID: ${task.id})`;
     } catch (error: any) {
@@ -118,9 +155,11 @@ export const completeTodoistTaskTool: ChatCompletionTool = {
 };
 
 export async function executeCompleteTodoistTask(args: { taskId: string }): Promise<string> {
+    console.log("🛠️ [TODOIST_TOOL] complete_todoist_task", args);
     try {
         const api = getTodoistApi();
         await api.closeTask(args.taskId);
+        console.log(`✅ [TODOIST_TOOL] Task completed: ${args.taskId}`);
         return `Task ${args.taskId} marked as completed.`;
     } catch (error: any) {
         return `Error completing task: ${error.message}`;

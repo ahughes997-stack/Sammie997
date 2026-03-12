@@ -22,6 +22,8 @@ import {
     executeAddTodoistTask,
     completeTodoistTaskTool,
     executeCompleteTodoistTask,
+    diagnoseTodoistTool,
+    executeDiagnoseTodoist,
 } from "./todoist.js";
 
 // ── Tool Registry ──────────────────────────────────────────────
@@ -79,6 +81,10 @@ const allTools: ToolDefinition[] = [
     {
         spec: completeTodoistTaskTool,
         execute: async (args) => executeCompleteTodoistTask(args as { taskId: string }),
+    },
+    {
+        spec: diagnoseTodoistTool,
+        execute: async () => executeDiagnoseTodoist(),
     },
 ];
 
